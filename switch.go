@@ -33,6 +33,19 @@ func (s *Switch) step() int {
 	return s.position
 }
 
+func (s *Switch) setPosition(i int) int {
+	s.position = i % s.npositions
+	return s.position
+}
+
+func (s *Switch) encipher(p int) int {
+	return s.encipherWiring[s.position][p]
+}
+
+func (s *Switch) decipher(c int) int {
+	return s.decipherWiring[s.position][c]
+}
+
 var sixesData, twenties1, twenties2, twenties3 switchData
 var sixesSwitch *Switch
 
