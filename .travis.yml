@@ -1,0 +1,9 @@
+language: go
+
+dist: trusty
+
+go:
+  - 1.8
+  - 1.9.x
+
+go_import_path: github.com/joefowler/purple
