@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 // switchData represents a single encipher/deciphering series of permutations
-type switchData [][]int
+type switchData [][]byte
 
 // invert makes a new switchData table, inverting each permutation
 func (s switchData) invert() switchData {
@@ -11,9 +11,9 @@ func (s switchData) invert() switchData {
 	nperms := len(s[1])
 	r := make(switchData, npositions)
 	for i := 0; i < npositions; i++ {
-		r[i] = make([]int, nperms)
+		r[i] = make([]byte, nperms)
 		for j := 0; j < nperms; j++ {
-			r[i][s[i][j]] = j
+			r[i][s[i][j]] = byte(j)
 		}
 	}
 	return r
@@ -38,18 +38,18 @@ func (s *Switch) setPosition(i int) int {
 	return s.position
 }
 
-func (s *Switch) encipher(p int) int {
+func (s *Switch) encipher(p byte) byte {
 	return s.encipherWiring[s.position][p]
 }
 
-func (s *Switch) decipher(c int) int {
+func (s *Switch) decipher(c byte) byte {
 	return s.decipherWiring[s.position][c]
 }
 
 var sixesSwitch, twenties1, twenties2, twenties3 *Switch
 
 func init() {
-	p3 := [][]int{
+	p3 := [][]byte{
 		{2, 1, 3, 5, 4, 6},
 		{6, 3, 5, 2, 1, 4},
 		{1, 5, 4, 6, 2, 3},
@@ -76,7 +76,7 @@ func init() {
 		{4, 6, 1, 2, 5, 3},
 		{5, 2, 4, 3, 6, 1},
 	}
-	p20_1 := [][]int{
+	p20_1 := [][]byte{
 		{6, 19, 14, 1, 10, 4, 2, 7, 13, 9, 8, 16, 3, 18, 15, 11, 5, 12, 20, 17},
 		{4, 5, 16, 17, 14, 1, 20, 15, 3, 8, 18, 11, 12, 13, 10, 19, 2, 6, 9, 7},
 		{17, 1, 13, 6, 15, 11, 19, 12, 16, 18, 10, 3, 7, 14, 8, 20, 4, 9, 2, 5},
@@ -103,7 +103,7 @@ func init() {
 		{5, 8, 1, 15, 19, 9, 12, 2, 6, 3, 14, 17, 4, 20, 16, 13, 18, 10, 7, 11},
 		{14, 10, 4, 8, 9, 12, 3, 11, 17, 20, 19, 6, 15, 5, 2, 18, 16, 7, 1, 13}}
 
-	p20_2 := [][]int{
+	p20_2 := [][]byte{
 		{15, 9, 1, 5, 17, 19, 3, 2, 10, 8, 11, 18, 12, 16, 6, 13, 20, 4, 14, 7},
 		{12, 6, 15, 2, 4, 9, 8, 16, 19, 17, 5, 11, 20, 7, 10, 18, 1, 14, 13, 3},
 		{4, 18, 5, 8, 16, 1, 12, 15, 20, 14, 13, 17, 11, 2, 7, 9, 6, 3, 10, 19},
@@ -130,7 +130,7 @@ func init() {
 		{19, 13, 8, 16, 20, 10, 7, 1, 2, 18, 14, 6, 9, 5, 12, 3, 17, 15, 11, 4},
 		{13, 1, 17, 15, 7, 4, 16, 3, 14, 5, 2, 10, 18, 8, 11, 9, 19, 12, 20, 6}}
 
-	p20_3 := [][]int{
+	p20_3 := [][]byte{
 		{7, 19, 11, 3, 20, 1, 10, 6, 16, 12, 17, 13, 8, 9, 4, 18, 5, 14, 15, 2},
 		{15, 17, 14, 2, 12, 13, 8, 3, 1, 19, 9, 4, 10, 7, 11, 20, 16, 6, 18, 5},
 		{2, 11, 20, 12, 1, 19, 4, 10, 9, 14, 6, 15, 13, 3, 7, 16, 18, 8, 5, 17},
@@ -162,10 +162,10 @@ func init() {
 	twenties3, _ = newSwitch(p20_3)
 }
 
-func datamaker(p [][]int) switchData {
+func datamaker(p [][]byte) switchData {
 	var data switchData
 	for i := range p {
-		data = append(data, make([]int, len(p[i])))
+		data = append(data, make([]byte, len(p[i])))
 		for j := range data[i] {
 			data[i][j] = p[i][j] - 1
 		}
@@ -173,7 +173,7 @@ func datamaker(p [][]int) switchData {
 	return data
 }
 
-func newSwitch(p [][]int) (*Switch, error) {
+func newSwitch(p [][]byte) (*Switch, error) {
 	sdata := datamaker(p)
 	s := new(Switch)
 	s.npositions = len(sdata)
