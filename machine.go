@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -16,11 +17,66 @@ type Machine struct {
 	plugboard map[byte]byte
 }
 
+// NewMachineFromKey creates a pointer to a new instance of a PURPLE machine, configured according to arguments.
+//
+//     switches: must be a string of the form 'a-b,c,d-ef' where
+//     a - starting position of the sixes switch (1-25)
+//     b - starting position of the twenties switch #1 (1-25)
+//     c - starting position of the twenties switch #2 (1-25)
+//     d - starting position of the twenties switch #3 (1-25)
+//     e - which switch is the fast switch (1-3)
+//     f - which switch is the middle switch (1-3)
+//
+// Example: '9-1,24,6-23'
+func NewMachineFromKey(key, alphabet string) (*Machine, error) {
+	parts := strings.Split(key, "-")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("Key was not of the form 9-1,24,6-23")
+	}
+	sixes, twenties, permutation := parts[0], parts[1], parts[2]
+
+	tparts := strings.Split(twenties, ",")
+	if len(tparts) != 3 {
+		return nil, fmt.Errorf("Key was not of the form 9-1,24,6-23")
+	}
+
+	sixpos, err := strconv.Atoi(sixes)
+	if err != nil {
+		return nil, err
+	}
+	tw1pos, err := strconv.Atoi(tparts[0])
+	if err != nil {
+		return nil, err
+	}
+	tw2pos, err := strconv.Atoi(tparts[1])
+	if err != nil {
+		return nil, err
+	}
+	tw3pos, err := strconv.Atoi(tparts[2])
+	if err != nil {
+		return nil, err
+	}
+	permnum, err := strconv.Atoi(permutation)
+	if err != nil {
+		return nil, err
+	}
+	fast := permnum / 10
+	middle := permnum % 10
+	return NewMachine(sixpos, tw1pos, tw2pos, tw3pos, fast, middle, alphabet)
+}
+
 // NewMachine creates a pointer to a new instance of a PURPLE machine, configured according to arguments.
 func NewMachine(sixpos, tw1pos, tw2pos, tw3pos, fast, middle int, alphabet string) (*Machine, error) {
+	if sixpos < 1 || sixpos > 25 ||
+		tw1pos < 1 || tw1pos > 25 ||
+		tw2pos < 1 || tw2pos > 25 ||
+		tw3pos < 1 || tw3pos > 25 {
+		return nil, fmt.Errorf("switch positions [%d, %d, %d, %d] should all be in range 1-25",
+			sixpos, tw1pos, tw2pos, tw3pos)
+	}
 	m := new(Machine)
 	m.sixes = sixesSwitch
-	m.sixes.setPosition(sixpos)
+	m.sixes.setPosition(sixpos - 1)
 	if fast == middle {
 		return nil, fmt.Errorf("fast and middle (%d, %d) must be different", fast, middle)
 	}
@@ -39,9 +95,9 @@ func NewMachine(sixpos, tw1pos, tw2pos, tw3pos, fast, middle int, alphabet strin
 			break
 		}
 	}
-	m.twenties[0].setPosition(tw1pos)
-	m.twenties[1].setPosition(tw2pos)
-	m.twenties[2].setPosition(tw3pos)
+	m.twenties[0].setPosition(tw1pos - 1)
+	m.twenties[1].setPosition(tw2pos - 1)
+	m.twenties[2].setPosition(tw3pos - 1)
 	m.fast = m.twenties[0]
 	m.middle = m.twenties[1]
 	m.slow = m.twenties[2]
