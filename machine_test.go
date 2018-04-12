@@ -8,27 +8,33 @@ import (
 
 func TestMachine(t *testing.T) {
 	alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	if _, err := NewMachine(0, 0, 0, 0, 0, 3, alphabet); err == nil {
+	if _, err := NewMachine(1, 2, 3, 26, 2, 3, alphabet); err == nil {
+		t.Errorf("Switch position > 25 should raise error")
+	}
+	if _, err := NewMachine(-1, 2, 3, 4, 2, 3, alphabet); err == nil {
+		t.Errorf("Switch position < 1 should raise error")
+	}
+	if _, err := NewMachine(1, 2, 3, 4, 0, 3, alphabet); err == nil {
 		t.Errorf("Fast switch = 0 should raise error")
 	}
-	if _, err := NewMachine(0, 0, 0, 0, 1, 0, alphabet); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 0, alphabet); err == nil {
 		t.Errorf("Middle switch = 0 should raise error")
 	}
-	if _, err := NewMachine(0, 0, 0, 0, 2, 2, alphabet); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 1, alphabet); err == nil {
 		t.Errorf("Fast switch = middle switch should raise error")
 	}
 
 	// Test bad alphabets
-	if _, err := NewMachine(0, 0, 0, 0, 1, 2, "AB"); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 2, "AB"); err == nil {
 		t.Errorf("Short alphabet should raise error")
 	}
-	if _, err := NewMachine(0, 0, 0, 0, 1, 2, "AABCDEFGHIJKLMNOPQRSTUVWXYZ"); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 2, "AABCDEFGHIJKLMNOPQRSTUVWXYZ"); err == nil {
 		t.Errorf("Long alphabet should raise error")
 	}
-	if _, err := NewMachine(0, 0, 0, 0, 1, 2, "AABCDEFGHIJKLMNOPQRSTUVWXY"); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 2, "AABCDEFGHIJKLMNOPQRSTUVWXY"); err == nil {
 		t.Errorf("Alphabet with repeated characters should raise error")
 	}
-	if _, err := NewMachine(0, 0, 0, 0, 1, 2, "ABCDEFGHIJKLMNOPQRS1234567"); err == nil {
+	if _, err := NewMachine(1, 2, 3, 4, 1, 2, "ABCDEFGHIJKLMNOPQRS1234567"); err == nil {
 		t.Errorf("Alphabet with non-letter characters should raise error")
 	}
 }
@@ -208,6 +214,60 @@ func Test14PartMessage(t *testing.T) {
 		t.Fatalf("Could not make machine from key, alphabet: %s, %s", key, alphabet)
 	}
 
-	fmt.Printf("%s\n", machine.decipherMessage(ciphertext))
-	fmt.Printf("%s\n", machine.encipherMessage(plaintext))
+	deciphered := machine.decipherMessage(ciphertext)
+	if plaintext != deciphered {
+		t.Errorf("Incorrectly deciphered the 14-part message")
+	}
+
+	machine, err = NewMachineFromKey(key, alphabet)
+	if err != nil {
+		t.Fatalf("Could not make machine from key, alphabet: %s, %s", key, alphabet)
+	}
+	enciphered := machine.encipherMessage(plaintext)
+	if ciphertext != enciphered {
+		t.Errorf("Incorrectly enciphered the 14-part message\n\n%s\n\n%s\n", ciphertext, enciphered)
+	}
+
+	// Try in lowercase
+	machine, err = NewMachineFromKey(key, alphabet)
+	if err != nil {
+		t.Fatalf("Could not make machine from key, alphabet: %s, %s", key, alphabet)
+	}
+	deciphered = machine.decipherMessage(strings.ToLower(ciphertext))
+	if strings.ToLower(plaintext) != deciphered {
+		t.Errorf("Incorrectly deciphered the 14-part message")
+	}
+	machine, err = NewMachineFromKey(key, alphabet)
+	if err != nil {
+		t.Fatalf("Could not make machine from key, alphabet: %s, %s", key, alphabet)
+	}
+	enciphered = machine.encipherMessage(strings.ToLower(plaintext))
+	if strings.ToLower(ciphertext) != enciphered {
+		t.Errorf("Incorrectly enciphered the 14-part message\n\n%s\n\n%s\n", ciphertext, enciphered)
+	}
+}
+
+func TestOneLine(t *testing.T) {
+	// This is a line from the 14-part message
+	line3Cipher := `PPFEALNNAKIBOOZNFRLQCFLJTTSSDDOIOCVT-ZCKQTSHXTIJCN`
+	line3Plain := `DESIRETOCOMETOANAMICABLEUNDERSTANDIN-WITHTHEGOVERN`
+	skipsteps := 45 + 50 + 50
+
+	key := "9-1,24,6-23"
+	alphabet := "NOKTYUXEQLHBRMPDICJASVWGZF"
+	machine, err := NewMachineFromKey(key, alphabet)
+	if err != nil {
+		t.Fatalf("Could not make machine from key, alphabet: %s, %s", key, alphabet)
+	}
+	for i := 0; i < skipsteps; i++ {
+		machine.step()
+	}
+
+	fmt.Printf("Cipher:   %s\n", line3Cipher)
+	fmt.Printf("Decipher: %s\n", machine.decipherMessage(line3Cipher))
+	fmt.Printf("Correct:  %s\n", line3Plain)
+	fmt.Printf("Alphabet: %s\n", machine.alphabet)
+	fmt.Printf("PlugboardI: %v\n", machine.plugboardIn)
+	fmt.Printf("PlugboardO: %v\n", machine.plugboardOut)
+	// fmt.Printf("%s\n", machine.encipherMessage(plaintext))
 }

@@ -8,13 +8,14 @@ import (
 
 // Machine represents the settings and state of a PURPLE machine.
 type Machine struct {
-	sixes     *Switch
-	twenties  [3]*Switch
-	fast      *Switch
-	middle    *Switch
-	slow      *Switch
-	alphabet  string
-	plugboard map[byte]byte
+	sixes        *Switch
+	twenties     [3]*Switch
+	fast         *Switch
+	middle       *Switch
+	slow         *Switch
+	alphabet     string
+	plugboardIn  [26]byte
+	plugboardOut [26]byte
 }
 
 // NewMachineFromKey creates a pointer to a new instance of a PURPLE machine, configured according to arguments.
@@ -86,21 +87,20 @@ func NewMachine(sixpos, tw1pos, tw2pos, tw3pos, fast, middle int, alphabet strin
 	if middle < 1 || middle > 3 {
 		return nil, fmt.Errorf("middle = %d, must be in [1,3]", middle)
 	}
-	twen := [3](*Switch){twenties1, twenties2, twenties3}
-	m.twenties[0] = twen[fast-1]
-	m.twenties[1] = twen[middle-1]
+	m.twenties[0] = twenties1
+	m.twenties[1] = twenties2
+	m.twenties[2] = twenties3
+	m.fast = m.twenties[fast-1]
+	m.middle = m.twenties[middle-1]
 	for i := 1; i <= 3; i++ {
 		if i != fast && i != middle {
-			m.twenties[2] = twen[i-1]
+			m.slow = m.twenties[i-1]
 			break
 		}
 	}
 	m.twenties[0].setPosition(tw1pos - 1)
 	m.twenties[1].setPosition(tw2pos - 1)
 	m.twenties[2].setPosition(tw3pos - 1)
-	m.fast = m.twenties[0]
-	m.middle = m.twenties[1]
-	m.slow = m.twenties[2]
 
 	// Validate the alphabet
 	if len(alphabet) != 26 {
@@ -120,9 +120,9 @@ func NewMachine(sixpos, tw1pos, tw2pos, tw3pos, fast, middle int, alphabet strin
 		}
 	}
 
-	m.plugboard = make(map[byte]byte)
 	for i, c := range []byte(m.alphabet) {
-		m.plugboard[c-'A'] = byte(i)
+		m.plugboardIn[c-'A'] = byte(i)
+		m.plugboardOut[i] = c - 'A'
 	}
 
 	return m, nil
@@ -142,21 +142,25 @@ func (m *Machine) step() {
 }
 
 // decipher converts c from cipher to plain text but does NOT step the machine
-func (m *Machine) decipher(c byte) byte {
-	n := m.plugboard[c]
+func (m *Machine) decipher(c byte) (p byte) {
+	n := m.plugboardIn[c]
 	if n < 6 {
-		return m.sixes.decipher(n)
+		p = m.sixes.decipher(n)
+	} else {
+		p = 6 + m.twenties[0].decipher(m.twenties[1].decipher(m.twenties[2].decipher(n-6)))
 	}
-	return 6 + m.fast.decipher(m.middle.decipher(m.slow.decipher(n-6)))
+	return m.plugboardOut[p]
 }
 
 // encipher converts p to ciphertext but does NOT step the machine
-func (m *Machine) encipher(p byte) byte {
-	n := m.plugboard[p]
+func (m *Machine) encipher(p byte) (c byte) {
+	n := m.plugboardIn[p]
 	if n < 6 {
-		return m.sixes.encipher(n)
+		c = m.sixes.encipher(n)
+	} else {
+		c = 6 + m.twenties[2].encipher(m.twenties[1].encipher(m.twenties[0].encipher(n-6)))
 	}
-	return 6 + m.fast.encipher(m.middle.encipher(m.slow.encipher(n-6)))
+	return m.plugboardOut[c]
 }
 
 func (m *Machine) decipherMessage(cipher string) string {
@@ -169,7 +173,9 @@ func (m *Machine) decipherMessage(cipher string) string {
 		} else {
 			result[i] = c
 		}
-		m.step()
+		if c != ' ' && c != '\n' {
+			m.step()
+		}
 	}
 	return string(result)
 }
@@ -184,7 +190,9 @@ func (m *Machine) encipherMessage(plain string) string {
 		} else {
 			result[i] = p
 		}
-		m.step()
+		if p != ' ' && p != '\n' {
+			m.step()
+		}
 	}
 	return string(result)
 }
